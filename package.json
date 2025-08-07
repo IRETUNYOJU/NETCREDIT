@@ -1,0 +1,27 @@
+{
+  "name": "netcredit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/IRETUNYOJU/NETCREDIT.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IRETUNYOJU/NETCREDIT/issues"
+  },
+  "homepage": "https://github.com/IRETUNYOJU/NETCREDIT#readme",
+  "description": "",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0"
+  }
+}
