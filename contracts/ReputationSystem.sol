@@ -145,6 +145,73 @@ contract ReputationSystem is Ownable, ReentrancyGuard {
     }
     
     /**
+     * @dev Get user trust level
+     */
+    function getUserTrustLevel(address user) public view returns (uint256) {
+        if (userReputations[user].user == address(0)) {
+            return 1; // Default trust level for new users
+        }
+        return userReputations[user].trustLevel;
+    }
+    
+    /**
+     * @dev Update user trust level based on score
+     */
+    function _updateTrustLevel(address user) internal {
+        uint256 score = userReputations[user].totalScore;
+        
+        if (score >= TRUST_LEVEL_5_THRESHOLD) {
+            userReputations[user].trustLevel = 5;
+        } else if (score >= TRUST_LEVEL_4_THRESHOLD) {
+            userReputations[user].trustLevel = 4;
+        } else if (score >= TRUST_LEVEL_3_THRESHOLD) {
+            userReputations[user].trustLevel = 3;
+        } else if (score >= TRUST_LEVEL_2_THRESHOLD) {
+            userReputations[user].trustLevel = 2;
+        } else {
+            userReputations[user].trustLevel = 1;
+        }
+    }
+    
+    /**
+     * @dev Record reputation action
+     */
+    function _recordAction(address user, string memory actionType, uint256 scoreChange, address relatedUser) internal {
+        _actionIdCounter++;
+        
+        ReputationAction memory action = ReputationAction({
+            actionId: _actionIdCounter,
+            user: user,
+            actionType: actionType,
+            scoreChange: scoreChange,
+            timestamp: block.timestamp,
+            relatedUser: relatedUser
+        });
+        
+        userActions[user].push(action);
+    }
+    
+    /**
+     * @dev Internal function to update user score
+     */
+    function _updateUserScore(address user, uint256 scoreChange, string memory actionType, address relatedUser) internal {
+        uint256 oldScore = userReputations[user].totalScore;
+        userReputations[user].totalScore += scoreChange;
+        userReputations[user].lastActivityTimestamp = block.timestamp;
+        
+        uint256 oldTrustLevel = userReputations[user].trustLevel;
+        _updateTrustLevel(user);
+        
+        _recordAction(user, actionType, scoreChange, relatedUser);
+        
+        emit ReputationUpdated(user, oldScore, userReputations[user].totalScore, actionType);
+        
+        if (oldTrustLevel != userReputations[user].trustLevel) {
+            emit TrustLevelChanged(user, oldTrustLevel, userReputations[user].trustLevel);
+        }
+    }
+    
+    /**
      * @dev Update reputation when credential is issued
      */
     function updateReputationForCredentialIssued(address issuer, address holder) external onlyAuthorizedContract {
@@ -206,63 +273,6 @@ contract ReputationSystem is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Internal function to update user score
-     */
-    function _updateUserScore(address user, uint256 scoreChange, string memory actionType, address relatedUser) internal {
-        uint256 oldScore = userReputations[user].totalScore;
-        userReputations[user].totalScore += scoreChange;
-        userReputations[user].lastActivityTimestamp = block.timestamp;
-        
-        uint256 oldTrustLevel = userReputations[user].trustLevel;
-        _updateTrustLevel(user);
-        
-        _recordAction(user, actionType, scoreChange, relatedUser);
-        
-        emit ReputationUpdated(user, oldScore, userReputations[user].totalScore, actionType);
-        
-        if (oldTrustLevel != userReputations[user].trustLevel) {
-            emit TrustLevelChanged(user, oldTrustLevel, userReputations[user].trustLevel);
-        }
-    }
-    
-    /**
-     * @dev Update user trust level based on score
-     */
-    function _updateTrustLevel(address user) internal {
-        uint256 score = userReputations[user].totalScore;
-        
-        if (score >= TRUST_LEVEL_5_THRESHOLD) {
-            userReputations[user].trustLevel = 5;
-        } else if (score >= TRUST_LEVEL_4_THRESHOLD) {
-            userReputations[user].trustLevel = 4;
-        } else if (score >= TRUST_LEVEL_3_THRESHOLD) {
-            userReputations[user].trustLevel = 3;
-        } else if (score >= TRUST_LEVEL_2_THRESHOLD) {
-            userReputations[user].trustLevel = 2;
-        } else {
-            userReputations[user].trustLevel = 1;
-        }
-    }
-    
-    /**
-     * @dev Record reputation action
-     */
-    function _recordAction(address user, string memory actionType, uint256 scoreChange, address relatedUser) internal {
-        _actionIdCounter++;
-        
-        ReputationAction memory action = ReputationAction({
-            actionId: _actionIdCounter,
-            user: user,
-            actionType: actionType,
-            scoreChange: scoreChange,
-            timestamp: block.timestamp,
-            relatedUser: relatedUser
-        });
-        
-        userActions[user].push(action);
-    }
-    
-    /**
      * @dev Get user reputation details
      */
     function getUserReputation(address user) external view returns (UserReputation memory) {
@@ -274,16 +284,6 @@ contract ReputationSystem is Ownable, ReentrancyGuard {
      */
     function getUserActions(address user) external view returns (ReputationAction[] memory) {
         return userActions[user];
-    }
-    
-    /**
-     * @dev Get user trust level
-     */
-    function getUserTrustLevel(address user) external view returns (uint256) {
-        if (userReputations[user].user == address(0)) {
-            return 1; // Default trust level for new users
-        }
-        return userReputations[user].trustLevel;
     }
     
     /**
